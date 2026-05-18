@@ -91,7 +91,7 @@ h1 { font-size: 20px; margin: 0; font-weight: 600; }
 
 <script>
 const DATA = {
-  "updated": "2026-05-18T10:54:20.847085+00:00",
+  "updated": "2026-05-18T11:02:55.269202+00:00",
   "previousUpdated": "2026-05-18T12:00:00Z",
   "searchUrl": "https://www.finn.no/realestate/leisuresale/search.html?lat=60.401771166706&lon=7.30037714111873&radius=7000&stored-id=87693839",
   "removed": [],
@@ -547,4 +547,19 @@ new gridjs.Grid({
     { name: 'm&sup2;', width: '60px', formatter: (v) => v ?? '—' },
     { name: 'Sov.', width: '50px', formatter: (v) => v ?? '—' },
     { name: 'Prisantydning', width: '160px',
-      sort: { c
+      sort: { compare: (a, b) => (a.price ?? 0) - (b.price ?? 0) },
+      formatter: (cell) => gridjs.html(`<span class="price">${fmtKr(cell.price)}</span>${cell.change}`) },
+    { name: 'Totalpris', width: '130px',
+      formatter: (v) => gridjs.html(`<span class="price">${fmtKr(v)}</span>`) },
+    { name: 'Kr/m&sup2;', width: '110px',
+      formatter: (v) => v ? fmtKr(v) : '—' }
+  ],
+  data: tableData,
+  sort: true,
+  pagination: { limit: 50 },
+  style: { table: { 'border-collapse': 'collapse' } }
+}).render(document.getElementById('table'));
+</script>
+
+</body>
+</html>
