@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Finn Bobiler",
+  "schemaVersion": 1,
+  "description": "Statisk oversikt over bobiler fra to lagrede Finn-søk (Adria Compact Supreme + Hymer Exsis 580). Oppdateres daglig av planlagt jobb 'finn-bobiler-sjekk'."
+}
+</script>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bobiler fra Finn.no</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" integrity="sha384-jZvDSsmGB9oGGT/4l9bHXGoAv1OxvG/cFmSo0dZaSqmBgvQTKDBFAMftlXTmMbNW" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous"></script>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  background: #fafafa;
+  color: #1a1a1a;
+  margin: 0;
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+header { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+h1 { font-size: 20px; margin: 0; font-weight: 600; }
+.subtitle { color: #666; font-size: 13px; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+.stat-card { background: white; border: 1px solid #e5e5e5; border-radius: 8px; padding: 10px 12px; }
+.stat-label { font-size: 11px; color: #777; text-transform: uppercase; letter-spacing: 0.4px; }
+.stat-value { font-size: 17px; font-weight: 600; margin-top: 2px; color: #1a1a1a; }
+.stat-sub { font-size: 11px; color: #888; margin-top: 2px; }
+.thumb { width: 64px; height: 48px; object-fit: cover; border-radius: 4px; display: block; background: #eee; }
+.title-cell { max-width: 380px; }
+.title-cell a { color: #0a4dc7; text-decoration: none; font-weight: 500; }
+.title-cell a:hover { text-decoration: underline; }
+.title-cell .meta { font-size: 12px; color: #666; margin-top: 2px; }
+.badge {
+  display: inline-block; font-size: 10px; font-weight: 600;
+  padding: 2px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle;
+}
+.badge-new { background: #e0f7e0; color: #15721b; }
+.badge-down { background: #e0f0ff; color: #0a4dc7; }
+.badge-up { background: #fff0e0; color: #a04a00; }
+.badge-leie { background: #f0e8ff; color: #5a2ca0; }
+.tag-sok { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #eef1f5; color: #444; white-space: nowrap; }
+.price { font-weight: 600; white-space: nowrap; }
+.price-change { font-size: 11px; color: #666; display: block; margin-top: 2px; }
+.price-change.down { color: #15721b; }
+.price-change.up { color: #a04a00; }
+.gridjs-wrapper { box-shadow: none !important; border-radius: 8px !important; }
+.gridjs-table { font-size: 13px; }
+.gridjs-th { background: #f5f5f5 !important; font-weight: 600 !important; color: #333 !important; }
+.gridjs-td { vertical-align: middle !important; padding: 8px 10px !important; }
+.gridjs-pagination { margin-top: 8px !important; }
+.removed-section {
+  margin-top: 20px; padding: 12px; background: #fff8f0;
+  border: 1px solid #ffe0c0; border-radius: 8px;
+}
+.removed-section h3 { margin: 0 0 8px 0; font-size: 14px; color: #a04a00; }
+.removed-section ul { margin: 0; padding-left: 20px; }
+.removed-section li { font-size: 13px; color: #555; margin-bottom: 4px; }
+.footer { margin-top: 16px; font-size: 11px; color: #888; text-align: center; }
+.footer a { color: #888; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Bobiler fra Finn.no</h1>
+  <div class="subtitle">Adria Compact Supreme &amp; Hymer Exsis 580 &middot; sist oppdatert <span id="updated"></span></div>
+</header>
+
+<div id="stats" class="stats"></div>
+<div id="removed-container"></div>
+<div id="table"></div>
+
+<div class="footer">
+  Datakilde: <a id="src-adria" href="#" target="_blank" rel="noopener">Adria-søk</a>
+  &middot; <a id="src-hymer" href="#" target="_blank" rel="noopener">Hymer-søk</a>
+  &middot; Oppdateres av planlagt jobb &laquo;finn-bobiler-sjekk&raquo;.
+</div>
+
+<script>
+const DATA = {
+  "updated": "2026-06-01T20:41:25+00:00",
+  "previousUpdated": "2026-06-01T20:41:25+00:00",
+  "searches": {
+    "adria": {
+      "name": "Adria Compact Supreme",
+      "make": "Adria",
+      "url": "https://www.finn.no/mobility/search/car/mobilehome?make=10&q=Compact+Supreme&stored-id=88022088"
+    },
+    "hymer": {
+      "name": "Hymer Exsis 580",
+      "make": "Hymer",
+      "url": "https://www.finn.no/mobility/search/car/mobilehome?make=250&q=exsis+580&stored-id=88023707"
+    }
+  },
+  "removed": [],
+  "listings": [
+    {
+      "id": "457232396",
+      "sok": "adria",
+      "tittel": "Adria DL Compact",
+      "aar": 2026,
+      "km": 100,
+      "drivstoff": "Diesel",
+      "girkasse": "Automat",
+      "sted": "Bodø",
+      "selger": "Privat",
+      "url": "https://www.finn.no/mobility/item/457232396",
+      "image": "https://images.finncdn.no/dynamic/480w/item/457232396/9941cef6-2a9a-4a76-97e5-d5a44a5a7caf",
+      "leie": true,
+      "askingPrice": 6000,
+      "baselinePrice": 6000,
+      "baselineDate": "2026-06-01T20:41:25+00:00",
+      "status": null
+    },
+    {
+      "id": "462937294",
+      "sok": "adria",
+      "tittel": "Adria Compact Supreme - Velholdt, lav km.",
+      "aar": 2024,
+      "km": 13000,
+      "drivstoff": "",
+      "girkasse": "Automat",
+      "sted": "Os",
+      "selger": "OS CARAVAN & FRITID AS",
+      "url": "https://www.finn.no/mobility/item/462937294",
+      "image": "https://images.finncdn.no/dynamic/480w/item/462937294/d80a3ca1-4720-4250-a22e-5967d74f0f84",
+      "leie": false,
+      "askingPrice": 1399500,
+      "baselinePrice": 1399500,
+      "baselineDate": "2026-06-01T20:41:25+00:00",
+      "status": null
+    },
+    {
+      "id": "459999661",
+      "sok": "adria",
+      "tittel": "Adria Compact Supreme DL",
+      "aar": 2024,
+      "km": 19950,
+      "drivstoff": "Diesel",
+      "girkasse": "Automat",
+      "sted": "Hafrsfjord",
+      "selger": "Privat",
+      "url": "https://www.finn.no/mobility/item/459999661",
+      "image": "https://images.finncdn.no/dynamic/480w/item/459999661/466dc8ea-5db2-4ab9-8190-c1146b98b6ef",
+      "leie": true,
+      "askingPrice": 15000,
+      "baselinePrice": 15000,
+      "baselineDate": "2026-06-01T20:41:25+00:00",
+      "status": null
+    },
+    {
+      "id": "420840385",
+      "sok": "adria",
+      "tittel": "Adria Compact Supreme DL",
+      "aar": 2025,
+      "km": 8500,
+      "drivstoff": "Diesel",
+      "girkasse": "Automat",
+      "sted": "Aurskog",
+      "selger": "Privat",
+      "url": "https://www.finn.no/mobility/item/420840385",
+      "image": "https://images.finncdn.no/dynamic/480w/f4/f4d3501a-3ca7-4007-8e27-49d4bd832b15",
+      "leie": true,
+      "askingPrice": 2200,
+      "baselinePrice": 2200,
+      "baselineDate": "2026-06-01T20:41:25+00:00",
+      "status": null
+    },
+    {
+      "id": "455472235",
+      "sok": "adria",
+      "tittel": "Adria Compact Supreme SC - Dobbeltgulv | Panorama | ACC",
+      "aar": 2024,
+      "km": 2330,
+      "drivstoff": "",
+      "girkasse": "Automat",
+      "sted": "Fjell",
+      "selger": "FERDA BERGEN",
+      "url": "https://www.finn.no/mobility/item/455472235",
+      "image": "https://images.finncdn.no/dynamic/480w/item/455472235/d4450785-6739-4920-8365-88017fdf35bb",
+      "leie": false,
+      "askingPrice": 1379000,
+      "baselinePrice": 1379000,
+      "baselineDate": "2026-06-01T20:41:25+00:00",
+      "status": null
+    },
+    {
+      "id": "451898763",
+      "sok": "adria",
+      "tittel": "Adria COMPACT SUPREME DL",
+      "aar": 2026,
+      "km": 200,
+      "drivstoff": "",
+      "girkasse": "Automat",
+      "sted": "Sortland",
+      "selger": "Sortland Caravan AS",
+      "url": "https://www.finn.no/mobility/item/451898763",
+      "image": "https://images.finncdn.no/dynamic/480w/item/451898763/56f1207e-ade9-488f-997a-1e879b8afe09",
+      "leie": false,
+      "askingPrice": 1494000,
+      "baselinePrice": 1494000,
+      "baselineDate": "2026-06-01T20:41:25+00:00",
+      "status": null
+    },
+    {
+      "id": "450742322",
+      "sok": "adria",
+      "tittel": "Adria COMPACT SUPREME DL 2026 – Fiat MultiJet3 180HK – Fullspekket med utstyr!",
+      "aar": 2026,
+      "km": null,
+      "drivstoff": "",
+      "girkasse": "Automat",
+      "sted": "Sandnes",
+      "selger": "Sola Bobil AS",
+      "url": "https://www.finn.no/mobility/item/450742322",
+      "image": "https://images.finncdn.no/dynamic/480w/item/450742322/dbdb1371-0f10-414e-8ed9-237219d26174",
+      "leie": false,
+      "askingPrice": 1613445,
+      "baselinePrice": 1613445,
+      "baselineDate": "2026-06-01T20:41:25+00:00",
+      "status": null
+    },
+    {
+      "id": "465255909",
+      "sok": "hymer",
+      "tittel": "Hymer Exsis T 580 Pure LAV KM",
+      "aar": 2021,
+      "km": 26000,
+      "drivstoff": "",
+      "girkasse": "Automat",
+      "sted": "Hjelset",
+      "selger": "Bil & Caravan Molde AS",
+      "url": "https://www.finn.no/mobility/item/465255909",
+      "image": "https://images.finncdn.no/dynamic/480w/item/465255909/e2667785-41bb-40f9-96a1-e40eb7c4f89d",
+      "leie": false,
+      "askingPrice": 1129900,
+      "baselinePrice": 1129900,
+      "baselineDate": "2026-06-01T20:41:25+00:00",
+      "status": null
+    },
+    {
+      "id": "464801963",
+      "sok": "hymer",
+      "tittel": "Hymer EXT 580 Compact, 221cm bredde og kun 693,5cm lang, Automat++",
+      "aar": 2021,
+      "km": 26000,
+      "drivstoff": "",
+      "girkasse": "Automat",
+      "sted": "Melhus",
+      "selger": "Namsen fritid AS",
+      "url": "https://www.finn.no/mobility/item/464801963",
+      "image": "https://images.finncdn.no/dynamic/480w/item/464801963/5aab1906-2414-42d1-be12-62ab4376f86d",
+      "leie": false,
+      "askingPrice": 1139900,
+      "baselinePrice": 1139900,
+      "baselineDate": "2026-06-01T20:41:25+00:00",
+      "status": null
+    },
+    {
+      "id": "464129456",
+      "sok": "hymer",
+      "tittel": "Hymer Exsis-t 580 Pure",
+      "aar": 2025,
+      "km": 100,
+      "drivstoff": "",
+      "girkasse": "Automat",
+      "sted": "Kongsberg",
+      "selger": "Caravan Shop AS",
+      "url": "https://www.finn.no/mobility/item/464129456",
+      "image": "https://images.finncdn.no/dynamic/480w/item/464129456/f10e8f54-201a-48ac-afc4-6088e792b099",
+      "leie": false,
+      "askingPrice": 1499500,
+      "baselinePrice": 1499500,
+      "baselineDate": "2026-06-01T20:41:25+00:00",
+      "status": null
+    },
+    {
+      "id": "462696566",
+      "sok": "hymer",
+      "tittel": "Hymer EXSIS I 580 | GARANTI | Nylig EU godkjent | Enkle senger bak | Senkeseng foran | Solcellepanel | EL-Gulvvarme | M.M.",
+      "aar": 2022,
+      "km": 20500,
+      "drivstoff": "",
+      "girkasse": "Automat",
+      "sted": "Kokstad",
+      "selger": "ABC DEAL AS",
+      "url": "https://www.finn.no/mobility/item/462696566",
+      "image": "https://images.finncdn.no/dynamic/480w/item/462696566/27d5aa09-f673-4657-8948-88215bd21802",
+      "leie": false,
+      "askingPrice": 1279000,
+      "baselinePrice": 1279000,
+      "baselineDate": "2026-06-01T20:41:25+00:00",
+      "status": null
+    },
+    {
+      "id": "422725421",
+      "sok": "hymer",
+      "tittel": "Hymer EXSIS-I 580 / Solcelle / Kamera / Vinterpakke",
+      "aar": 2025,
+      "km": 1500,
+      "drivstoff": "Diesel",
+      "girkasse": "Automat",
+      "sted": "Rødberg",
+      "selger": "Toppen Bil AS",
+      "url": "https://www.finn.no/mobility/item/422725421",
+      "image": "https://images.finncdn.no/dynamic/480w/bd/bd99b9f7-ebd3-473a-9da7-5164e7ab5e30",
+      "leie": true,
+      "askingPrice": 1550,
+      "baselinePrice": 1550,
+      "baselineDate": "2026-06-01T20:41:25+00:00",
+      "status": null
+    },
+    {
+      "id": "451668897",
+      "sok": "hymer",
+      "tittel": "Hymer Exsis-I 580 Pure Lithium",
+      "aar": 2026,
+      "km": 100,
+      "drivstoff": "Diesel",
+      "girkasse": "Automat",
+      "sted": "Porsgrunn",
+      "selger": "Heistad Bil Caravan",
+      "url": "https://www.finn.no/mobility/item/451668897",
+      "image": "https://images.finncdn.no/dynamic/480w/item/451668897/f1b6e6ee-a88e-4f82-a899-b4cc3c71c0de",
+      "leie": false,
+      "askingPrice": 1722900,
+      "baselinePrice": 1722900,
+      "baselineDate": "2026-06-01T20:41:25+00:00",
+      "status": null
+    },
+    {
+      "id": "446248751",
+      "sok": "hymer",
+      "tittel": "Hymer Exsis-I 580 Pure, 3500/3650kg, 180hk, Automat",
+      "aar": 2025,
+      "km": null,
+      "drivstoff": "",
+      "girkasse": "Automat",
+      "sted": "Sandnes",
+      "selger": "Sola Bobil AS",
+      "url": "https://www.finn.no/mobility/item/446248751",
+      "image": "https://images.finncdn.no/dynamic/480w/item/446248751/c71f5a6e-53ab-4751-b81e-451fe883100b",
+      "leie": false,
+      "askingPrice": 1849190,
+      "baselinePrice": 1849190,
+      "baselineDate": "2026-06-01T20:41:25+00:00",
+      "status": null
+    },
+    {
+      "id": "440476861",
+      "sok": "hymer",
+      "tittel": "Hymer Exsis-I 580 Pure",
+      "aar": 2025,
+      "km": 100,
+      "drivstoff": "",
+      "girkasse": "Automat",
+      "sted": "Kongsberg",
+      "selger": "Caravan Shop AS",
+      "url": "https://www.finn.no/mobility/item/440476861",
+      "image": "https://images.finncdn.no/dynamic/480w/item/440476861/bc53a92a-579c-4c48-991e-12b27d6ef1ed",
+      "leie": false,
+      "askingPrice": 1775600,
+      "baselinePrice": 1775600,
+      "baselineDate": "2026-06-01T20:41:25+00:00",
+      "status": null
+    }
+  ]
+};
+
+const NOK = new Intl.NumberFormat('nb-NO');
+const PCT = new Intl.NumberFormat('nb-NO', { minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: 'exceptZero' });
+const KR_SIGNED = new Intl.NumberFormat('nb-NO', { signDisplay: 'exceptZero' });
+const fmtKr = (n) => (n == null || isNaN(n)) ? '—' : NOK.format(n) + ' kr';
+const fmtKrSigned = (n) => (n == null || isNaN(n)) ? '—' : KR_SIGNED.format(n) + ' kr';
+const fmtPct = (n) => (n == null || isNaN(n)) ? '—' : PCT.format(n) + ' %';
+const fmtKm = (n) => (n == null || isNaN(n)) ? '—' : NOK.format(n) + ' km';
+
+document.getElementById('updated').textContent = new Date(DATA.updated).toLocaleString('nb-NO', { dateStyle: 'short', timeStyle: 'short' });
+if (DATA.searches) {
+  const a = document.getElementById('src-adria'); if (DATA.searches.adria) a.href = DATA.searches.adria.url;
+  const h = document.getElementById('src-hymer'); if (DATA.searches.hymer) h.href = DATA.searches.hymer.url;
+}
+
+const sokName = (key) => (DATA.searches && DATA.searches[key]) ? DATA.searches[key].name : key;
+
+// Compute change status from baselinePrice (first observed; set by scheduled task)
+const listings = DATA.listings.map(l => {
+  const out = { ...l };
+  if (l.status === 'new') {
+    out._status = 'new';
+  } else if (l.baselinePrice != null && l.askingPrice != null && l.baselinePrice !== l.askingPrice) {
+    out._status = l.askingPrice < l.baselinePrice ? 'price-down' : 'price-up';
+    out._prevPrice = l.baselinePrice;
+    out._baselineDate = l.baselineDate;
+    out._priceDelta = l.askingPrice - l.baselinePrice;
+    out._pricePct = ((l.askingPrice - l.baselinePrice) / l.baselinePrice) * 100;
+  }
+  return out;
+});
+
+// Stats (rentals excluded from price math to avoid skew)
+const salePrices = listings.filter(l => !l.leie).map(l => l.askingPrice).filter(p => p != null);
+const sorted = [...salePrices].sort((a, b) => a - b);
+const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
+const min = sorted[0] || 0;
+const max = sorted[sorted.length - 1] || 0;
+
+const adriaCount = listings.filter(l => l.sok === 'adria').length;
+const hymerCount = listings.filter(l => l.sok === 'hymer').length;
+const newCount = listings.filter(l => l._status === 'new').length;
+const downCount = listings.filter(l => l._status === 'price-down').length;
+const upCount = listings.filter(l => l._status === 'price-up').length;
+
+document.getElementById('stats').innerHTML = `
+  <div class="stat-card"><div class="stat-label">Aktive annonser</div><div class="stat-value">${listings.length}</div><div class="stat-sub">Forrige sjekk: ${new Date(DATA.previousUpdated).toLocaleString('nb-NO', { dateStyle: 'short', timeStyle: 'short' })}</div></div>
+  <div class="stat-card"><div class="stat-label">Adria Compact Supreme</div><div class="stat-value">${adriaCount}</div><div class="stat-sub">Hymer Exsis 580: ${hymerCount}</div></div>
+  <div class="stat-card"><div class="stat-label">Median pris (salg)</div><div class="stat-value">${fmtKr(median)}</div><div class="stat-sub">${salePrices.length} til salgs</div></div>
+  <div class="stat-card"><div class="stat-label">Prisspenn (salg)</div><div class="stat-value">${fmtKr(min)}</div><div class="stat-sub">opp til ${fmtKr(max)}</div></div>
+  <div class="stat-card"><div class="stat-label">Endringer fra baseline</div><div class="stat-value">${newCount + downCount + upCount}</div><div class="stat-sub">${newCount} nye &middot; ${downCount} ned &middot; ${upCount} opp</div></div>
+`;
+
+// Removed
+const removedC = document.getElementById('removed-container');
+if (DATA.removed && DATA.removed.length) {
+  removedC.innerHTML = `
+    <div class="removed-section">
+      <h3>Forsvunnet fra søket siden forrige sjekk (${DATA.removed.length})</h3>
+      <ul>${DATA.removed.map(r => `
+        <li><a href="https://www.finn.no/mobility/item/${r.id}" target="_blank" rel="noopener">${r.tittel}</a>
+        <span class="tag-sok">${sokName(r.sok)}</span>${r.lastPrice ? ' &mdash; siste pris ' + fmtKr(r.lastPrice) : ''}</li>
+      `).join('')}</ul>
+    </div>`;
+}
+
+// Table
+const tableData = listings.map(l => {
+  let badges = '';
+  let priceChange = '';
+  if (l._status === 'new') {
+    badges = '<span class="badge badge-new">Ny</span>';
+  } else if (l._status === 'price-down') {
+    badges = `<span class="badge badge-down">${fmtPct(l._pricePct)}</span>`;
+    priceChange = `<span class="price-change down">Baseline ${fmtKr(l._prevPrice)}${l._baselineDate ? ' (' + new Date(l._baselineDate).toLocaleDateString('nb-NO') + ')' : ''} &middot; ${fmtKrSigned(l._priceDelta)} (${fmtPct(l._pricePct)})</span>`;
+  } else if (l._status === 'price-up') {
+    badges = `<span class="badge badge-up">${fmtPct(l._pricePct)}</span>`;
+    priceChange = `<span class="price-change up">Baseline ${fmtKr(l._prevPrice)}${l._baselineDate ? ' (' + new Date(l._baselineDate).toLocaleDateString('nb-NO') + ')' : ''} &middot; ${fmtKrSigned(l._priceDelta)} (${fmtPct(l._pricePct)})</span>`;
+  }
+  if (l.leie) badges += '<span class="badge badge-leie">Leie</span>';
+  const metaParts = [l.sted, l.selger, l.drivstoff, l.girkasse].filter(Boolean);
+  return [
+    l.image || '',
+    { title: l.tittel, url: l.url || ('https://www.finn.no/mobility/item/' + l.id), meta: metaParts.join(' · '), badges },
+    sokName(l.sok),
+    l.aar,
+    l.km,
+    { price: l.askingPrice, change: priceChange }
+  ];
+});
+
+new gridjs.Grid({
+  columns: [
+    { name: '', sort: false, formatter: (img) => img
+        ? gridjs.html(`<img class="thumb" src="${img}" alt="" loading="lazy">`) : '' },
+    { name: 'Bobil', sort: { compare: (a, b) => a.title.localeCompare(b.title) },
+      formatter: (cell) => gridjs.html(`
+        <div class="title-cell">
+          <a href="${cell.url}" target="_blank" rel="noopener">${cell.title}</a>${cell.badges}
+          <div class="meta">${cell.meta}</div>
+        </div>`) },
+    { name: 'Søk', width: '150px', formatter: (v) => gridjs.html(`<span class="tag-sok">${v}</span>`) },
+    { name: 'År', width: '70px', formatter: (v) => v ?? '—' },
+    { name: 'Km', width: '90px',
+      sort: { compare: (a, b) => (a ?? 0) - (b ?? 0) },
+      formatter: (v) => fmtKm(v) },
+    { name: 'Pris', width: '170px',
+      sort: { compare: (a, b) => (a.price ?? 0) - (b.price ?? 0) },
+      formatter: (cell) => gridjs.html(`<span class="price">${fmtKr(cell.price)}</span>${cell.change}`) }
+  ],
+  data: tableData,
+  sort: true,
+  pagination: { limit: 50 },
+  style: { table: { 'border-collapse': 'collapse' } }
+}).render(document.getElementById('table'));
+</script>
+
+</body>
+</html>
